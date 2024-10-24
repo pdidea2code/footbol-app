@@ -27,9 +27,12 @@ const Matches = async (req, res, next) => {
         day: 'numeric' 
       });
       if (!acc[formattedDate]) {
-        acc[formattedDate] = [];
+        acc[formattedDate] = {
+          date: formattedDate,
+          matches: []
+        };
       }
-      acc[formattedDate].push({
+      acc[formattedDate].matches.push({
         eventid: data.id,
         name: data.tournament.name,
         customId: data.customId,
@@ -38,27 +41,19 @@ const Matches = async (req, res, next) => {
         uniqueTournamentId: data.tournament.uniqueTournament?.id,
         uniqueTournamentColor: data.tournament.uniqueTournament?.primaryColorHex,
         uniqueTournamentImage: data.tournament.uniqueTournament
-          ? `${
-              req.protocol +
-              "://" +
-              req.get("host") +
-              process.env.LOCAL_UNIQUETOURNAMENTIMAGE +
-              data.tournament.uniqueTournament?.id
-            }`
+          ? `${req.protocol}://${req.get("host")}${process.env.LOCAL_UNIQUETOURNAMENTIMAGE}${data.tournament.uniqueTournament?.id}`
           : null,
-
         countryImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_COUNTRYFLAG}${
           data.tournament.category.alpha2 ? data.tournament.category.alpha2 : data.tournament.category.flag
         }`,
         startTimestamp: data.startTimestamp,
         homeTeam: data.homeTeam.name,
-
-        homeTeamImg: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_TEAM_IMAGE + data.homeTeam.id}`,
+        homeTeamImg: `${req.protocol}://${req.get("host")}${process.env.LOCAL_TEAM_IMAGE}${data.homeTeam.id}`,
         homeTeamId: data.homeTeam.id,
         homeScore: data.homeScore.display,
         homeTeamShortName: data.homeTeam.shortName,
         awayTeam: data.awayTeam.name,
-        awayTeamImage: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_TEAM_IMAGE + data.awayTeam.id}`,
+        awayTeamImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_TEAM_IMAGE}${data.awayTeam.id}`,
         awayTeamId: data.awayTeam.id,
         awayScore: data.awayScore.display,
         awayTeamShortName: data.awayTeam.shortName,
@@ -75,10 +70,7 @@ const Matches = async (req, res, next) => {
     const startIndex = (page - 1) * groupsPerPage;
     const endIndex = page * groupsPerPage;
 
-    const paginatedGroups = sortedDates.slice(startIndex, endIndex).reduce((acc, date) => {
-      acc[date] = groupedInfo[date];
-      return acc;
-    }, {});
+    const paginatedGroups = sortedDates.slice(startIndex, endIndex).map(date => groupedInfo[date]);
 
     const paginationData = {
       currentPage: page,
