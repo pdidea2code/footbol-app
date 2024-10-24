@@ -154,6 +154,9 @@ const UpcomingMatch = async (req, res, next) => {
       if (!league) {
         league = {
           league: event.league,
+          leagueId: event.leagueId,
+          uniqueTournament: event.uniqueTournament,
+          uniqueTournamentId: event.uniqueTournamentId,
           countryImage: event.countryImage,
           matches: [],
         };
@@ -205,20 +208,29 @@ const CompleteMatch = async (req, res, next) => {
 
     const groupedEvents = events.reduce((acc, event) => {
       if (event.status?.type === "finished") {
-        const league = event.tournament.name;
-        if (!acc[league]) acc[league] = [];
-        acc[league].push({
+        const league = `${event.tournament.category.country.name} - ${event.tournament.name}`;
+
+        if (!acc[league]) {
+          acc[league] = {
+            league,
+            leagueId: event.tournament.id,
+            uniqueTournament: event.tournament?.uniqueTournament?.name,
+            uniqueTournamentId: event.tournament?.uniqueTournament?.id,
+            countryImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_COUNTRYFLAG}${
+              event.tournament.category.alpha2 || event.tournament.category.flag
+            }`,
+            matches: [],
+          };
+        }
+
+        acc[league].matches.push({
           eventId: event.id,
-          league,
-          country: event.tournament.category.country.name,
-          leagueId: event.tournament.id,
-          uniqueTournament: data.tournament?.uniqueTournament?.name,
-          uniqueTournamentId: event.tournament?.uniqueTournament?.id,
-          countryImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_COUNTRYFLAG}${
-            event.tournament.category.alpha2 ? event.tournament.category.alpha2 : event.tournament.category.flag
-          }`,
           customId: event.customId,
           startTimestamp: event.startTimestamp,
+          time: new Date(event.startTimestamp * 1000).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           winnerCode: event.winnerCode,
           homeTeam: event.homeTeam.name,
           homeTeamImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_TEAM_IMAGE}${event.homeTeam.id}`,
@@ -228,14 +240,22 @@ const CompleteMatch = async (req, res, next) => {
           awayTeamId: event.awayTeam.id,
           status: event.status,
           season: event.season.id,
+          type: event.type,
+          uniqueTournament: event.tournament.uniqueTournament?.name,
+          uniqueTournamentId: event.tournament.uniqueTournament?.id,
+          leagueId: event.tournament.id,
+          countryImage: event.countryImage,
         });
-      } else {
+
         return acc;
       }
       return acc;
     }, {});
 
-    successResponse(res, groupedEvents);
+    // Convert the result to an array of leagues
+    const formattedEvents = Object.values(groupedEvents);
+
+    successResponse(res, formattedEvents);
   } catch (error) {
     next(error);
   }
