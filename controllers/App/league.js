@@ -18,8 +18,18 @@ const Matches = async (req, res, next) => {
     );
 
     const events = data?.response?.events || [];
-    const info = events.map((data) => {
-      const info = {
+    const groupedInfo = events.reduce((acc, data) => {
+      const date = new Date(data.startTimestamp * 1000);
+      const formattedDate = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      if (!acc[formattedDate]) {
+        acc[formattedDate] = [];
+      }
+      acc[formattedDate].push({
         eventid: data.id,
         name: data.tournament.name,
         customId: data.customId,
@@ -53,27 +63,32 @@ const Matches = async (req, res, next) => {
         awayScore: data.awayScore.display,
         awayTeamShortName: data.awayTeam.shortName,
         status: data.status,
-      };
-      return info;
-    });
+      });
+      return acc;
+    }, {});
+
+    const sortedDates = Object.keys(groupedInfo).sort((a, b) => new Date(a) - new Date(b));
 
     // Add pagination
     const page = parseInt(req.body.page) || 1;
-    const limit = 50;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
+    const groupsPerPage = 10;
+    const startIndex = (page - 1) * groupsPerPage;
+    const endIndex = page * groupsPerPage;
 
-    const paginatedInfo = info.slice(startIndex, endIndex);
+    const paginatedGroups = sortedDates.slice(startIndex, endIndex).reduce((acc, date) => {
+      acc[date] = groupedInfo[date];
+      return acc;
+    }, {});
 
     const paginationData = {
       currentPage: page,
-      totalPages: Math.ceil(info.length / limit),
-      totalItems: info.length,
-      itemsPerPage: limit,
+      totalPages: Math.ceil(sortedDates.length / groupsPerPage),
+      totalGroups: sortedDates.length,
+      groupsPerPage: groupsPerPage,
     };
 
     successResponse(res, {
-      matches: paginatedInfo,
+      matches: paginatedGroups,
       pagination: paginationData,
     });
   } catch (error) {
