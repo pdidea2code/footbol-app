@@ -193,7 +193,28 @@ const UpcomingMatch = async (req, res, next) => {
       return acc;
     }, []);
 
-    return successResponse(res, formattedEvents);
+    // Add pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const itemsPerPage = 10;
+
+    // Implement pagination
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedEvents = formattedEvents.slice(startIndex, endIndex);
+
+    const totalPages = Math.ceil(formattedEvents.length / itemsPerPage);
+
+    const response = {
+      events: paginatedEvents,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        itemsPerPage: itemsPerPage,
+        totalItems: formattedEvents.length,
+      },
+    };
+
+    return successResponse(res, response);
   } catch (error) {
     console.error("Error fetching upcoming matches:", error.message);
     next(error);
@@ -272,28 +293,50 @@ const CompleteMatch = async (req, res, next) => {
 const Search = async (req, res, next) => {
   try {
     const query = req.body.query;
+    
     if (!query || query.trim() === "") {
       return queryErrorRelatedResponse(res, 400, "Query is required");
     }
+    if(query.length<3){
+      return queryErrorRelatedResponse(res, 400, "Query must be at least 3 characters");
+    }
 
-    const { data } = await axios.get(`${process.env.WEB_API_URL}/api/v1/search/unique-tournaments/${query}/more`);
+    let teamData = null;
+    try {
+      const { data } = await axios.get(`${process.env.WEB_API_URL}/api/v1/search/teams/${req.body.query}/more`);
+      teamData = data.teams;
+      // console.log(teamData);
+    } catch (error) {
+      return queryErrorRelatedResponse(res, 400, "Invalid query");
+    }
 
-    const info = data.uniqueTournaments.reduce((acc, item) => {
-      if (item.category.sport.name === "Football") {
-        acc.push({
-          id: item.id,
-          name: item.name,
-          image: `${req.protocol}://${req.get("host")}${process.env.LOCAL_UNIQUETOURNAMENTIMAGE}${item.id}`,
-          country: item.category.name,
-          countryImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_COUNTRYFLAG}${
-            item.category.alpha2 ? item.category.alpha2 : item.category.flag
-          }`,
-        });
-      }
-      return acc;
-    }, []);
+    // let info = {
+    //   team:[]
+    // };
 
-    return successResponse(res, info);
+    // if (teamData) {
+    // let teamInfo = teamData.reduce((acc, item) => {
+    //   if (item.category.sport.name === "Football") {
+    //     acc.push({
+    //       id: item.id,
+    //       name: item.name,
+    //       image: `${req.protocol}://${req.get("host")}${process.env.LOCAL_UNIQUETOURNAMENTIMAGE}${item.id}`,
+    //       country: item.category.name,
+    //       countryImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_COUNTRYFLAG}${
+    //         item.category.alpha2 ? item.category.alpha2 : item.category.flag
+    //       }`,
+    //     });
+    //   }
+    //   return acc;
+    //   }, []);
+    //   info = {
+    //     team: teamInfo ? teamInfo : [],
+    //   };
+    // }
+
+    
+
+    return successResponse(res, teamData);
   } catch (error) {
     next(error);
   }

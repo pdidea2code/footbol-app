@@ -1,4 +1,4 @@
-const { successResponse } = require("../../helper/sendResponse");
+const { successResponse, queryErrorRelatedResponse } = require("../../helper/sendResponse");
 const axios = require("axios");
 
 const Matches = async (req, res, next) => {
@@ -68,6 +68,8 @@ const Table = async (req, res, next) => {
     if (!process.env.API_URL || !process.env.X_RAPIDAPI_KEY || !process.env.X_RAPIDAPI_HOST) {
       throw new Error("Missing required environment variables");
     }
+    let standings = null;
+    try{
     const { data, headers } = await axios.get(
       `${process.env.WEB_API_URL}/api/v1/unique-tournament/${req.body.uniqueTournamentId}/season/${req.body.seasonid}/standings/total`,
       {
@@ -77,8 +79,14 @@ const Table = async (req, res, next) => {
         },
       }
     );
-
-    const standings = data?.standings || [];
+    standings = data?.standings || []
+    }catch(error){
+      console.error("Error fetching Table:", error);
+    }
+if(!standings){
+  return queryErrorRelatedResponse(res,404,"Data not found");
+}
+    
     const info = standings.flatMap(standing => {
       const rows = standing.rows || [];
       return rows.map(row => ({
@@ -152,6 +160,8 @@ const TopTeam = async (req, res, next) => {
     if (!process.env.API_URL || !process.env.X_RAPIDAPI_KEY || !process.env.X_RAPIDAPI_HOST) {
       throw new Error("Missing required environment variables");
     }
+    let team = {};
+    try{
     const { data, headers } = await axios.get(
       `${process.env.WEB_API_URL}/api/v1/unique-tournament/${req.body.uniqueTournamentId}/season/${req.body.seasonid}/top-teams/overall`,
       {
@@ -162,7 +172,13 @@ const TopTeam = async (req, res, next) => {
       }
     );
 
-    const team = data?.topTeams || {};
+    team = data?.topTeams || {};
+    }catch(error){
+      console.error("Error fetching Top Team:", error);
+      
+    }
+
+    // const team = data?.topTeams || {};
     const extractedData = {};
     const statisticsKeys = Object.keys(team);
     statisticsKeys.forEach(key => {

@@ -3,14 +3,24 @@ const { successResponse, queryErrorRelatedResponse } = require("../../helper/sen
 
 const MatchesDetails = async (req, res, next) => {
   try {
+    let event = null;
+    try{
     const { data: eventData } = await axios.get(`${process.env.WEB_API_URL}/api/v1/event/${req.body.eventid}`, {
       headers: {
         "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
         "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
       }
-    });
+      });
+       event = eventData.event;
+    } catch (error) {
+      console.error("Error fetching Event:", error);
+    }
 
-    const event = eventData.event;
+    if(!event){
+      return queryErrorRelatedResponse(res,404,"Event not found");
+    }
+
+    
 
 
     let ChannelIds = [];
@@ -30,7 +40,7 @@ const MatchesDetails = async (req, res, next) => {
     } catch (error) {
       console.error("Error fetching TV data:", error);
     }
-    console.log(event.status.type);
+    console.log(event);
     try {
       const { data: tvChannelsData } = await axios.get(
         `${process.env.WEB_API_URL}/api/v1/tv/country/${req.body.country}/channels`,
