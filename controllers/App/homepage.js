@@ -281,14 +281,36 @@ const CompleteMatch = async (req, res, next) => {
       return acc;
     }, {});
 
+    // Add pagination parameters
+    const page = parseInt(req.body.page) || 1;
+    const itemsPerPage = 10;
+
     // Convert the result to an array of leagues
     const formattedEvents = Object.values(groupedEvents);
 
-    successResponse(res, formattedEvents);
+    // Implement pagination
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedEvents = formattedEvents.slice(startIndex, endIndex);
+
+    const totalPages = Math.ceil(formattedEvents.length / itemsPerPage);
+
+    const response = {
+      events: paginatedEvents,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        itemsPerPage: itemsPerPage,
+        totalItems: formattedEvents.length,
+      },
+    };
+
+    successResponse(res, response);
   } catch (error) {
     next(error);
   }
 };
+
 
 const Search = async (req, res, next) => {
   try {
