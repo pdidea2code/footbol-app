@@ -194,7 +194,7 @@ const UpcomingMatch = async (req, res, next) => {
     }, []);
 
     // Add pagination parameters
-    const page = parseInt(req.query.page) || 1;
+    const page = parseInt(req.body.page) || 1;
     const itemsPerPage = 10;
 
     // Implement pagination
