@@ -46,10 +46,12 @@ const Matches = async (req, res, next) => {
         homeTeamImg: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_TEAM_IMAGE + data.homeTeam.id}`,
         homeTeamId: data.homeTeam.id,
         homeScore: data.homeScore.display,
+        homeTeamShortName: data.homeTeam.shortName,
         awayTeam: data.awayTeam.name,
         awayTeamImage: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_TEAM_IMAGE + data.awayTeam.id}`,
         awayTeamId: data.awayTeam.id,
         awayScore: data.awayScore.display,
+        awayTeamShortName: data.awayTeam.shortName,
         status: data.status,
       };
       return info;
@@ -83,6 +85,7 @@ const Table = async (req, res, next) => {
         teamId: row.team.id,
         teamName: row.team.name,
         teamImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_TEAM_IMAGE}${row.team.id}`,
+        teamShortName: row.team.shortName,
         points: row.points,
         position: row.position,
         matches: row.matches,
@@ -125,6 +128,7 @@ const TopPlayers = async (req, res, next) => {
         playerName: data.player.name,
         playerImage: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_PLAYERIMAGE + data.player.id}`,
         playerRating: data.rating,
+        playerShortName: data.player.shortName,
         goals: data.goals,
         assists: data.assists,
         "goals+assists": data.goals + data.assists,
@@ -168,7 +172,7 @@ const TopTeam = async (req, res, next) => {
       if (team[key]) {
         extractedData[key] = team[key].map(team => ({
           name: team.team.name,
-          shortName: team.team.shortName,
+            shortName: team.team.shortName,
           id: team.team.id,
           statistics: team.statistics,
           teamImage: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_TEAM_IMAGE + team.team.id}`,

@@ -1,8 +1,8 @@
 const express = require("express");
-const { NextMatch } = require("../../controllers/App/team");
+const { Overview } = require("../../controllers/App/team");
 
 const routes = express.Router();
 
-routes.post("/NextMatch", NextMatch);
+routes.post("/overview", Overview);
 
 module.exports = routes;
