@@ -16,6 +16,11 @@ const LiveMatch = async (req, res, next) => {
     });
 
     const info = data.events.map((data) => {
+      
+      
+      // Aggregate score calculation
+      const aggregatedHomeScore = data.homeScore?.period1 + data.homeScore?.period2;
+      const aggregatedAwayScore = data.awayScore?.period1 + data.awayScore?.period2;
       const info = {
         eventid: data.id,
         name: data.tournament.name,
@@ -51,11 +56,14 @@ const LiveMatch = async (req, res, next) => {
         homeTeamId: data.homeTeam.id,
         homeScore: data.homeScore.display,
         homeTeamShortName: data.homeTeam.shortName,
+        aggregatedHomeScore: aggregatedHomeScore ? aggregatedHomeScore : 0,
         awayTeam: data.awayTeam.name,
         awayTeamImage: `${req.protocol + "://" + req.get("host") + process.env.LOCAL_TEAM_IMAGE + data.awayTeam.id}`,
         awayTeamId: data.awayTeam.id,
         awayScore: data.awayScore.display,
+        aggregatedAwayScore: aggregatedAwayScore ? aggregatedAwayScore : 0 ,
         awayTeamShortName: data.awayTeam.shortName,
+        aggregatedScore: `${aggregatedHomeScore ? aggregatedHomeScore : 0} - ${aggregatedAwayScore ? aggregatedAwayScore : 0  }`,
         status: data.status,
         seasonid: data.season?.id ? data.season.id : null,
       };
@@ -364,4 +372,66 @@ const Search = async (req, res, next) => {
   }
 };
 
-module.exports = { LiveMatch, UpcomingMatch, CompleteMatch, Search };
+const country = async (req, res, next) => {
+  try {
+    let data = null;
+   try{
+    const { data: countryData } = await axios.get(`${process.env.WEB_API_URL}/api/v1/sport/football/categories`, {
+      headers: {
+        "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
+        "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
+      }
+    });
+    data = countryData.categories;
+   }catch(error){
+    console.log(error);
+   }
+   if(!data){
+    return queryErrorRelatedResponse(res, 404, "Country not found");
+   }
+   
+   const info = data.map((item) => {
+    return {
+      countryId: item.id,
+      countryName: item.name,
+      countryImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_COUNTRYFLAG}${item.alpha2 ? item.alpha2 : item.flag}`,
+      
+    }
+   })
+   successResponse(res, info);
+  } catch (error) {
+    next(error);
+  }
+}
+
+const uniqueTournamentbyCountry = async (req, res, next) => {
+try{
+  let data = null;
+try {
+  const { data: uniqueTournamentData } = await axios.get(`${process.env.WEB_API_URL}/api/v1/category/${req.body.countryId}/unique-tournaments`, {
+    headers: {
+      "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
+      "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
+    }
+  });
+  data = uniqueTournamentData.groups[0].uniqueTournaments;
+} catch (error) {
+  console.log(error);
+}
+if(!data){
+  return queryErrorRelatedResponse(res, 404, "Unique Tournament not found");
+}
+
+const info = data.map((item) => {
+  return {
+    uniqueTournamentsId: item.id,
+    uniqueTournamentsName: item.name,
+    uniqueTournamentsImage: `${req.protocol}://${req.get("host")}${process.env.LOCAL_UNIQUETOURNAMENTIMAGE}${item.id}`,
+}})
+return successResponse(res, info);
+}catch(error){
+  next(error);
+}
+}
+
+module.exports = { LiveMatch, UpcomingMatch, CompleteMatch, Search, country, uniqueTournamentbyCountry };
