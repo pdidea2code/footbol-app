@@ -57,7 +57,25 @@ const Matches = async (req, res, next) => {
       return info;
     });
 
-    successResponse(res, info);
+    // Add pagination
+    const page = parseInt(req.body.page) || 1;
+    const limit = 50;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    const paginatedInfo = info.slice(startIndex, endIndex);
+
+    const paginationData = {
+      currentPage: page,
+      totalPages: Math.ceil(info.length / limit),
+      totalItems: info.length,
+      itemsPerPage: limit,
+    };
+
+    successResponse(res, {
+      matches: paginatedInfo,
+      pagination: paginationData,
+    });
   } catch (error) {
     next(error);
   }

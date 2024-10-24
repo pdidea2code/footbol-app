@@ -4,23 +4,23 @@ const { successResponse, queryErrorRelatedResponse } = require("../../helper/sen
 const MatchesDetails = async (req, res, next) => {
   try {
     let event = null;
-    try{
-    const { data: eventData } = await axios.get(`${process.env.WEB_API_URL}/api/v1/event/${req.body.eventid}`, {
-      headers: {
-        "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
-        "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
-      }
+    try {
+      const { data: eventData } = await axios.get(`${process.env.WEB_API_URL}/api/v1/event/${req.body.eventid}`, {
+        headers: {
+          "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
+          "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
+        }
       });
-       event = eventData.event;
+      event = eventData.event;
     } catch (error) {
       console.error("Error fetching Event:", error);
     }
 
-    if(!event){
-      return queryErrorRelatedResponse(res,404,"Event not found");
+    if (!event) {
+      return queryErrorRelatedResponse(res, 404, "Event not found");
     }
 
-    
+
 
 
     let ChannelIds = [];
@@ -93,6 +93,47 @@ const MatchesDetails = async (req, res, next) => {
       }
     }
 
+    let matchData = null;
+    try {
+      const { data: incidentsData } = await axios.get(`${process.env.WEB_API_URL}/api/v1/event/${req.body.eventid}/incidents`, {
+        headers: {
+          "x-rapidapi-key": process.env.X_RAPIDAPI_KEY,
+          "x-rapidapi-host": process.env.X_RAPIDAPI_HOST,
+        }
+      })
+      matchData = incidentsData;
+
+    } catch (error) {
+      console.error("Error fetching player data:", error);
+    }
+
+    const goalScorers = matchData.incidents.filter(incident => incident.incidentType === 'goal');
+
+const groupGoalsByPlayer = (goals) => {
+  const groupedGoals = {};
+  goals.forEach(goal => {
+    const playerName = goal.player.shortName;
+    if (!groupedGoals[playerName]) {
+      groupedGoals[playerName] = [];
+    }
+    groupedGoals[playerName].push(goal.time);
+  });
+  return groupedGoals;
+};
+
+const formatGroupedGoals = (groupedGoals) => {
+  return Object.entries(groupedGoals).map(([player, times]) => {
+    return `${player} ${times.join("', ")}${times.length > 1 ? "'" : ''}`;
+  }).join('\n');
+};
+
+const homeGoals = goalScorers.filter(goal => goal.isHome);
+const awayGoals = goalScorers.filter(goal => !goal.isHome);
+
+const formattedHomeGoals = formatGroupedGoals(groupGoalsByPlayer(homeGoals));
+const formattedAwayGoals = formatGroupedGoals(groupGoalsByPlayer(awayGoals));
+
+
     const info = {
       eventId: event.id,
       tournament: event.tournament.name,
@@ -114,7 +155,9 @@ const MatchesDetails = async (req, res, next) => {
       venue: `${event.venue?.stadium?.name},${event.venue?.city?.name},${event.venue?.country?.name}`,
       venueId: event.venue,
       tv: tv || null,
-      PlayeroftheMatch: playerOfTheMatch || null
+      PlayeroftheMatch: playerOfTheMatch || null,
+      homeGoals: formattedHomeGoals,
+      awayGoals: formattedAwayGoals,
     };
 
     successResponse(res, info);
@@ -175,6 +218,10 @@ const Lineups = async (req, res, next) => {
       });
 
       return {
+        homeTeamformation: data.home.formation,
+        awayTeamformation: data.away.formation,
+        homeTeamAbsence: data.home?.missingPlayers.map(extractInfo),
+        awayTeamAbsence: data.away?.missingPlayers.map(extractInfo),
         home: data.home.players.map(extractInfo),
         away: data.away.players.map(extractInfo)
       };
